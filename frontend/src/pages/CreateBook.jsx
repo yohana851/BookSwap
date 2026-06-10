@@ -24,16 +24,8 @@ export default function CreateBook() {
   const [loading, setLoading] = useState(false)
 
   useEffect(() => {
-    if (!isAuthenticated) {
-      navigate('/login')
-      return
-    }
-    if (user?.role !== 'seller' && user?.role !== 'admin') {
-      navigate('/')
-      return
-    }
     api.getCategories().then(setCategories).catch((err) => setError(err.message))
-  }, [isAuthenticated, user, navigate])
+  }, [])
 
   const handleChange = (e) => {
     setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }))

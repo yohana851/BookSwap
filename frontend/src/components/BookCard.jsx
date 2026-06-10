@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom'
 
-export default function BookCard({ book }) {
+export default function BookCard({ book, showBuy = false, isAuthenticated = false }) {
   return (
     <article className="book-card">
       <div className="book-cover">
@@ -19,9 +19,21 @@ export default function BookCard({ book }) {
             {book.status}
           </span>
         </div>
-        <Link to={`/books/${book.book_id}`} className="btn btn-primary btn-block">
-          View details
-        </Link>
+        <div className="book-actions">
+          <Link to={`/books/${book.book_id}`} className="btn btn-secondary btn-block">
+            View details
+          </Link>
+          {showBuy && isAuthenticated && book.status === 'Available' && (
+            <Link to={`/books/${book.book_id}`} className="btn btn-primary btn-block">
+              Buy now
+            </Link>
+          )}
+          {!isAuthenticated && book.status === 'Available' && (
+            <Link to="/login/user" className="btn btn-primary btn-block">
+              Sign in to buy
+            </Link>
+          )}
+        </div>
       </div>
     </article>
   )

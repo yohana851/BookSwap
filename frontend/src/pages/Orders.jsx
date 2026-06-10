@@ -1,26 +1,16 @@
 import { useEffect, useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link } from 'react-router-dom'
 import { api } from '../api/client'
 import { useAuth } from '../context/AuthContext'
 
 export default function Orders() {
-  const { user, isAuthenticated } = useAuth()
-  const navigate = useNavigate()
+  const { user } = useAuth()
   const [orders, setOrders] = useState([])
   const [books, setBooks] = useState({})
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
 
   useEffect(() => {
-    if (!isAuthenticated) {
-      navigate('/login')
-      return
-    }
-    if (user?.role !== 'buyer' && user?.role !== 'admin') {
-      navigate('/')
-      return
-    }
-
     Promise.all([api.getOrders(), api.getBooks()])
       .then(([ordersData, booksData]) => {
         const bookMap = Object.fromEntries(booksData.map((b) => [b.book_id, b]))
@@ -33,7 +23,7 @@ export default function Orders() {
       })
       .catch((err) => setError(err.message))
       .finally(() => setLoading(false))
-  }, [isAuthenticated, user, navigate])
+  }, [user])
 
   if (loading) return <p className="page-message">Loading orders...</p>
   if (error) return <p className="page-message error">{error}</p>
@@ -47,7 +37,7 @@ export default function Orders() {
 
       {orders.length === 0 ? (
         <p className="page-message">
-          No orders yet. <Link to="/">Browse books</Link>
+          No orders yet. <Link to="/user#books">Browse books</Link>
         </p>
       ) : (
         <div className="orders-list">

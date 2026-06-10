@@ -1,9 +1,30 @@
 import { useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, useNavigate, useParams } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 
+const roleConfig = {
+  user: {
+    title: 'User Sign In',
+    subtitle: 'Log in to browse and buy used books',
+    registerPath: '/register/user',
+    redirectPath: '/user',
+    expectedRoles: ['buyer', 'admin'],
+    wrongRoleMessage: 'This login is for users (buyers). Sellers should use seller sign in.',
+  },
+  seller: {
+    title: 'Seller Sign In',
+    subtitle: 'Log in to list and manage your books',
+    registerPath: '/register/seller',
+    redirectPath: '/sell',
+    expectedRoles: ['seller', 'admin'],
+    wrongRoleMessage: 'This login is for sellers. Users should use user sign in.',
+  },
+}
+
 export default function Login() {
-  const { login, loading } = useAuth()
+  const { role = 'user' } = useParams()
+  const config = roleConfig[role] || roleConfig.user
+  const { login, logout, loading } = useAuth()
   const navigate = useNavigate()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -13,8 +34,13 @@ export default function Login() {
     e.preventDefault()
     setError('')
     try {
-      await login(email, password)
-      navigate('/')
+      const user = await login(email, password)
+      if (!config.expectedRoles.includes(user.role)) {
+        logout()
+        setError(config.wrongRoleMessage)
+        return
+      }
+      navigate(config.redirectPath)
     } catch (err) {
       setError(err.message)
     }
@@ -22,40 +48,60 @@ export default function Login() {
 
   return (
     <div className="page auth-page">
-      <form className="auth-card" onSubmit={handleSubmit}>
-        <h1>Log in</h1>
-        <p className="muted">Welcome back to BookSwap</p>
+      <div className="auth-wrapper">
+        <div className="auth-role-tabs">
+          <Link
+            to="/login/user"
+            className={`auth-tab ${role === 'user' ? 'active' : ''}`}
+          >
+            User
+          </Link>
+          <Link
+            to="/login/seller"
+            className={`auth-tab ${role === 'seller' ? 'active' : ''}`}
+          >
+            Seller
+          </Link>
+        </div>
 
-        {error && <p className="form-error">{error}</p>}
+        <form className="auth-card" onSubmit={handleSubmit}>
+          <h1>{config.title}</h1>
+          <p className="muted">{config.subtitle}</p>
 
-        <label>
-          Email
-          <input
-            type="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            required
-          />
-        </label>
+          {error && <p className="form-error">{error}</p>}
 
-        <label>
-          Password
-          <input
-            type="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            required
-          />
-        </label>
+          <label>
+            Email
+            <input
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required
+            />
+          </label>
 
-        <button type="submit" className="btn btn-primary btn-block" disabled={loading}>
-          {loading ? 'Logging in...' : 'Log in'}
-        </button>
+          <label>
+            Password
+            <input
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+            />
+          </label>
 
-        <p className="auth-footer">
-          No account? <Link to="/register">Sign up</Link>
-        </p>
-      </form>
+          <button type="submit" className="btn btn-primary btn-block" disabled={loading}>
+            {loading ? 'Signing in...' : 'Sign In'}
+          </button>
+
+          <p className="auth-footer">
+            No account? <Link to={config.registerPath}>Create one</Link>
+          </p>
+          <p className="auth-footer">
+            <Link to="/">← Back to home</Link>
+          </p>
+        </form>
+      </div>
     </div>
   )
 }

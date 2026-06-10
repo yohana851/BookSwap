@@ -32,7 +32,7 @@ export default function BookDetail() {
 
   const handleBuy = async () => {
     if (!isAuthenticated) {
-      navigate('/login')
+      navigate('/login/user')
       return
     }
     setActionError('')
@@ -57,7 +57,7 @@ export default function BookDetail() {
   if (!book) return null
 
   return (
-    <div className="page">
+    <div className="page book-detail-page">
       <Link to="/" className="back-link">
         ← Back to browse
       </Link>
@@ -119,8 +119,8 @@ export default function BookDetail() {
                   {buying ? 'Processing...' : 'Buy now'}
                 </button>
               ) : !isAuthenticated ? (
-                <Link to="/login" className="btn btn-primary">
-                  Log in to buy
+                <Link to="/login/user" className="btn btn-primary">
+                  Sign in to buy
                 </Link>
               ) : (
                 <p className="muted">Only buyers can purchase books.</p>
