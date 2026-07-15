@@ -1,16 +1,10 @@
 import { Link, NavLink } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
-
-const sectionLinks = [
-  { href: '#home', label: 'Home' },
-  { href: '#about', label: 'About' },
-  { href: '#services', label: 'Services' },
-  { href: '#categories', label: 'Categories' },
-  { href: '#how-it-works', label: 'How It Works' },
-]
+import { useShop } from '../context/ShopContext'
 
 export default function UserNavbar() {
   const { user, logout } = useAuth()
+  const { cartCount, wishlistCount } = useShop()
 
   return (
     <header className="navbar user-navbar">
@@ -19,15 +13,19 @@ export default function UserNavbar() {
         BookSwap
       </Link>
       <nav>
-        {sectionLinks.map((link) => (
-          <a key={link.href} href={link.href}>
-            {link.label}
-          </a>
-        ))}
-        <Link to="/user#books">Buy Books</Link>
+        <NavLink to="/user" end>
+          Buy Books
+        </NavLink>
         <NavLink to="/orders">My Orders</NavLink>
+        {user?.role === 'admin' && <NavLink to="/admin">Admin</NavLink>}
       </nav>
       <div className="nav-actions">
+        <NavLink to="/wishlist" className="nav-icon-link" title="Wishlist">
+          ♥{wishlistCount > 0 && <span className="nav-badge">{wishlistCount}</span>}
+        </NavLink>
+        <NavLink to="/cart" className="nav-icon-link" title="Cart">
+          🛒{cartCount > 0 && <span className="nav-badge">{cartCount}</span>}
+        </NavLink>
         <span className="user-badge">Hi, {user?.username}</span>
         <button type="button" className="btn btn-secondary" onClick={logout}>
           Log out

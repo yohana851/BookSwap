@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
+import LoadingSpinner from '../components/LoadingSpinner'
 import { api } from '../api/client'
 import { useAuth } from '../context/AuthContext'
 
@@ -25,7 +26,7 @@ export default function Orders() {
       .finally(() => setLoading(false))
   }, [user])
 
-  if (loading) return <p className="page-message">Loading orders...</p>
+  if (loading) return <LoadingSpinner label="Loading orders..." />
   if (error) return <p className="page-message error">{error}</p>
 
   return (
@@ -37,7 +38,7 @@ export default function Orders() {
 
       {orders.length === 0 ? (
         <p className="page-message">
-          No orders yet. <Link to="/user#books">Browse books</Link>
+          No orders yet. <Link to="/user">Browse books</Link>
         </p>
       ) : (
         <div className="orders-list">
@@ -51,10 +52,23 @@ export default function Orders() {
                   <p className="order-date">
                     Ordered {new Date(order.order_date).toLocaleDateString()}
                   </p>
+                  {order.delivery_address && (
+                    <p className="muted order-delivery">
+                      Deliver to: {order.delivery_name} · {order.delivery_phone}
+                      <br />
+                      {order.delivery_address}
+                      {order.delivery_location && ` (${order.delivery_location})`}
+                    </p>
+                  )}
                 </div>
                 <div className="order-meta">
-                  <span className="price">${order.total_amount.toFixed(2)}</span>
-                  <span className="payment-status">{order.payment_status}</span>
+                  <span className={`status status-order-${order.status.toLowerCase()}`}>
+                    {order.status}
+                  </span>
+                  <span className="price">NPR {order.total_amount.toFixed(2)}</span>
+                  <span className="payment-status">
+                    {order.payment_method} · {order.payment_status}
+                  </span>
                   {book && (
                     <Link to={`/books/${book.book_id}`} className="btn btn-secondary">
                       View book

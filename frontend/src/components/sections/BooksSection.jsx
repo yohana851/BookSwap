@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
+import LoadingSpinner from '../LoadingSpinner'
 import { api } from '../../api/client'
 import BookCard from '../BookCard'
 
@@ -15,6 +16,7 @@ export default function BooksSection({
   const [error, setError] = useState('')
   const [search, setSearch] = useState('')
   const [categoryFilter, setCategoryFilter] = useState(selectedCategory)
+  const [sortBy, setSortBy] = useState('latest')
 
   useEffect(() => {
     setCategoryFilter(selectedCategory)
@@ -35,14 +37,26 @@ export default function BooksSection({
     onCategoryChange?.(value)
   }
 
-  const filteredBooks = books.filter((book) => {
-    const matchesSearch =
-      book.title.toLowerCase().includes(search.toLowerCase()) ||
-      (book.author || '').toLowerCase().includes(search.toLowerCase())
-    const matchesCategory =
-      categoryFilter === 'all' || String(book.category_id) === categoryFilter
-    return matchesSearch && matchesCategory && book.status === 'Available'
-  })
+  const filteredBooks = books
+    .filter((book) => {
+      const matchesSearch =
+        book.title.toLowerCase().includes(search.toLowerCase()) ||
+        (book.author || '').toLowerCase().includes(search.toLowerCase())
+      const matchesCategory =
+        categoryFilter === 'all' || String(book.category_id) === categoryFilter
+      return matchesSearch && matchesCategory
+    })
+    .sort((a, b) => {
+      if (a.status === 'Available' && b.status !== 'Available') return -1
+      if (a.status !== 'Available' && b.status === 'Available') return 1
+      if (sortBy === 'rating') {
+        return b.average_rating - a.average_rating || b.review_count - a.review_count
+      }
+      if (sortBy === 'reviews') {
+        return b.review_count - a.review_count
+      }
+      return new Date(b.created_at) - new Date(a.created_at)
+    })
 
   return (
     <section id="books" className="section books-section">
@@ -74,9 +88,14 @@ export default function BooksSection({
             </option>
           ))}
         </select>
+        <select value={sortBy} onChange={(e) => setSortBy(e.target.value)}>
+          <option value="latest">Latest</option>
+          <option value="reviews">Most reviewed</option>
+          <option value="rating">Top rated</option>
+        </select>
       </div>
 
-      {loading && <p className="page-message">Loading books...</p>}
+      {loading && <LoadingSpinner label="Loading books..." />}
       {error && <p className="page-message error">{error}</p>}
 
       {!loading && !error && filteredBooks.length === 0 && (
@@ -99,7 +118,7 @@ export default function BooksSection({
       {!isAuthenticated && !showBuy && (
         <div className="books-cta">
           <p>Ready to buy? Create a free account to place orders.</p>
-          <Link to="/register/user" className="btn btn-primary">
+          <Link to="/register?role=buyer" className="btn btn-primary">
             Sign up to buy
           </Link>
         </div>

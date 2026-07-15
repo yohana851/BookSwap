@@ -9,6 +9,7 @@ export function AuthProvider({ children }) {
     return stored ? JSON.parse(stored) : null
   })
   const [loading, setLoading] = useState(false)
+  const [formResetKey, setFormResetKey] = useState(0)
 
   useEffect(() => {
     if (user) {
@@ -19,10 +20,10 @@ export function AuthProvider({ children }) {
     }
   }, [user])
 
-  const login = async (email, password) => {
+  const login = async (identifier, password) => {
     setLoading(true)
     try {
-      const data = await api.login({ email, password })
+      const data = await api.login({ identifier, password })
       localStorage.setItem('access_token', data.access_token)
       setUser(data.user)
       return data.user
@@ -45,6 +46,7 @@ export function AuthProvider({ children }) {
     setUser(null)
     localStorage.removeItem('access_token')
     localStorage.removeItem('user')
+    setFormResetKey((prev) => prev + 1)
   }
 
   const value = useMemo(
@@ -55,8 +57,9 @@ export function AuthProvider({ children }) {
       login,
       register,
       logout,
+      formResetKey,
     }),
-    [user, loading],
+    [user, loading, formResetKey],
   )
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>

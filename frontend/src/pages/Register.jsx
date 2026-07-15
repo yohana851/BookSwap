@@ -1,46 +1,84 @@
-import { useState } from 'react'
-import { Link, useNavigate, useParams } from 'react-router-dom'
+import { useEffect, useState } from 'react'
+import { Link, useNavigate, useSearchParams } from 'react-router-dom'
+import PasswordInput from '../components/PasswordInput'
+import { homePathForRole } from '../components/ProtectedRoute'
 import { useAuth } from '../context/AuthContext'
 
-const roleConfig = {
-  user: {
-    title: 'Create User Account',
-    subtitle: 'Join as a buyer to discover and purchase books',
-    loginPath: '/login/user',
-    redirectPath: '/user',
-    role: 'buyer',
+const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+
+const roleCards = [
+  {
+    value: 'buyer',
+    title: 'Buyer',
+    description: 'Discover and purchase used books from sellers.',
   },
-  seller: {
-    title: 'Create Seller Account',
-    subtitle: 'Join as a seller to list and sell your books',
-    loginPath: '/login/seller',
-    redirectPath: '/sell',
-    role: 'seller',
+  {
+    value: 'seller',
+    title: 'Seller',
+    description: 'List and sell your own used books to buyers.',
   },
-}
+]
+
+const stepLabels = ['Account type', 'Personal details', 'Set password']
 
 export default function Register() {
-  const { role = 'user' } = useParams()
-  const config = roleConfig[role] || roleConfig.user
-  const { register, loading } = useAuth()
+  const [searchParams] = useSearchParams()
+  const { register, loading, formResetKey } = useAuth()
   const navigate = useNavigate()
-  const [form, setForm] = useState({
-    username: '',
-    email: '',
-    password: '',
-  })
+
+  const [step, setStep] = useState(1)
+  const [role, setRole] = useState('')
+  const [username, setUsername] = useState('')
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
+  const [confirmPassword, setConfirmPassword] = useState('')
+  const [emailError, setEmailError] = useState('')
   const [error, setError] = useState('')
 
-  const handleChange = (e) => {
-    setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }))
+  useEffect(() => {
+    const paramRole = searchParams.get('role')
+    setStep(1)
+    setRole(['buyer', 'seller'].includes(paramRole) ? paramRole : '')
+    setUsername('')
+    setEmail('')
+    setPassword('')
+    setConfirmPassword('')
+    setEmailError('')
+    setError('')
+  }, [searchParams, formResetKey])
+
+  const handleEmailBlur = () => {
+    setEmailError(
+      email && !emailPattern.test(email) ? 'Enter a valid email address' : '',
+    )
+  }
+
+  const goToDetails = () => {
+    if (!role) return
+    setError('')
+    setStep(2)
+  }
+
+  const goToPassword = (e) => {
+    e.preventDefault()
+    setError('')
+    if (!emailPattern.test(email)) {
+      setEmailError('Enter a valid email address')
+      return
+    }
+    setStep(3)
   }
 
   const handleSubmit = async (e) => {
     e.preventDefault()
     setError('')
+    if (password !== confirmPassword) {
+      setError('Passwords do not match')
+      return
+    }
     try {
-      await register({ ...form, role: config.role })
-      navigate(config.redirectPath)
+      const user = await register({ username, email, password, role })
+      navigate(homePathForRole(user.role))
     } catch (err) {
       setError(err.message)
     }
@@ -49,71 +87,142 @@ export default function Register() {
   return (
     <div className="page auth-page">
       <div className="auth-wrapper">
-        <div className="auth-role-tabs">
-          <Link
-            to="/register/user"
-            className={`auth-tab ${role === 'user' ? 'active' : ''}`}
-          >
-            User
-          </Link>
-          <Link
-            to="/register/seller"
-            className={`auth-tab ${role === 'seller' ? 'active' : ''}`}
-          >
-            Seller
-          </Link>
+        <div className="signup-steps">
+          {stepLabels.map((label, index) => {
+            const stepNumber = index + 1
+            return (
+              <div
+                key={label}
+                className={`signup-step ${step === stepNumber ? 'active' : ''} ${
+                  step > stepNumber ? 'done' : ''
+                }`}
+              >
+                <span className="signup-step-number">{stepNumber}</span>
+                {label}
+              </div>
+            )
+          })}
         </div>
 
-        <form className="auth-card" onSubmit={handleSubmit}>
-          <h1>{config.title}</h1>
-          <p className="muted">{config.subtitle}</p>
+        <div className="auth-card">
+          <h1>Create your account</h1>
+          <p className="muted">Join BookSwap to buy or sell used books.</p>
 
           {error && <p className="form-error">{error}</p>}
 
-          <label>
-            Username
-            <input
-              name="username"
-              value={form.username}
-              onChange={handleChange}
-              required
-            />
-          </label>
+          {step === 1 && (
+            <>
+              <div className="role-cards">
+                {roleCards.map((card) => (
+                  <button
+                    key={card.value}
+                    type="button"
+                    className={`role-card ${role === card.value ? 'selected' : ''}`}
+                    onClick={() => setRole(card.value)}
+                  >
+                    <h3>{card.title}</h3>
+                    <p>{card.description}</p>
+                  </button>
+                ))}
+              </div>
+              <button
+                type="button"
+                className="btn btn-primary btn-block"
+                onClick={goToDetails}
+                disabled={!role}
+              >
+                Continue
+              </button>
+            </>
+          )}
 
-          <label>
-            Email
-            <input
-              type="email"
-              name="email"
-              value={form.email}
-              onChange={handleChange}
-              required
-            />
-          </label>
+          {step === 2 && (
+            <form onSubmit={goToPassword}>
+              <label>
+                Username
+                <input
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)}
+                  required
+                />
+              </label>
 
-          <label>
-            Password
-            <input
-              type="password"
-              name="password"
-              value={form.password}
-              onChange={handleChange}
-              minLength={6}
-              required
-            />
-          </label>
+              <label>
+                Email
+                <input
+                  type="email"
+                  value={email}
+                  onChange={(e) => {
+                    setEmail(e.target.value)
+                    if (emailError) setEmailError('')
+                  }}
+                  onBlur={handleEmailBlur}
+                  autoComplete="username"
+                  required
+                />
+                {emailError && <span className="field-error">{emailError}</span>}
+              </label>
 
-          <button type="submit" className="btn btn-primary btn-block" disabled={loading}>
-            {loading ? 'Creating account...' : 'Sign Up'}
-          </button>
+              <div className="form-actions">
+                <button type="button" className="btn btn-ghost" onClick={() => setStep(1)}>
+                  Back
+                </button>
+                <button type="submit" className="btn btn-primary">
+                  Continue
+                </button>
+              </div>
+            </form>
+          )}
+
+          {step === 3 && (
+            <form onSubmit={handleSubmit}>
+              <label>
+                Password
+                <PasswordInput
+                  name="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  minLength={6}
+                  autoComplete="new-password"
+                  required
+                />
+              </label>
+
+              <label>
+                Confirm Password
+                <PasswordInput
+                  name="confirmPassword"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  minLength={6}
+                  autoComplete="new-password"
+                  required
+                />
+              </label>
+
+              <div className="form-actions">
+                <button
+                  type="button"
+                  className="btn btn-ghost"
+                  onClick={() => setStep(2)}
+                  disabled={loading}
+                >
+                  Back
+                </button>
+                <button type="submit" className="btn btn-primary" disabled={loading}>
+                  {loading ? 'Creating account...' : 'Create account'}
+                </button>
+              </div>
+            </form>
+          )}
 
           <p className="auth-footer">
-            Already have an account? <Link to={config.loginPath}>Sign in</Link>
+            Already have an account? <Link to="/login">Sign in</Link>
           </p>
           <p className="auth-footer">
             <Link to="/">← Back to home</Link>
           </p>
-        </form>
+        </div>
       </div>
     </div>
   )

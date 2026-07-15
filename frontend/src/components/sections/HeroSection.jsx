@@ -1,6 +1,22 @@
+import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
+import { api } from '../../api/client'
 
 export default function HeroSection({ isAuthenticated = false }) {
+  const [stats, setStats] = useState({ books: 0, orders: 0, categories: 0 })
+
+  useEffect(() => {
+    Promise.all([api.getBooks(), api.getOrders(), api.getCategories()])
+      .then(([books, orders, categories]) => {
+        setStats({
+          books: books.length,
+          orders: orders.length,
+          categories: categories.length,
+        })
+      })
+      .catch(() => {})
+  }, [])
+
   return (
     <section id="home" className="hero-section">
       <div className="hero-content">
@@ -21,10 +37,10 @@ export default function HeroSection({ isAuthenticated = false }) {
             </a>
           ) : (
             <>
-              <Link to="/register/user" className="btn btn-primary btn-lg">
-                Start as User
+              <Link to="/register?role=buyer" className="btn btn-primary btn-lg">
+                Start as Buyer
               </Link>
-              <Link to="/register/seller" className="btn btn-outline btn-lg">
+              <Link to="/register?role=seller" className="btn btn-outline btn-lg">
                 Sell Your Books
               </Link>
             </>
@@ -32,15 +48,15 @@ export default function HeroSection({ isAuthenticated = false }) {
         </div>
         <div className="hero-stats">
           <div>
-            <strong>500+</strong>
+            <strong>{stats.books}</strong>
             <span>Books listed</span>
           </div>
           <div>
-            <strong>200+</strong>
-            <span>Happy readers</span>
+            <strong>{stats.orders}</strong>
+            <span>Orders placed</span>
           </div>
           <div>
-            <strong>50+</strong>
+            <strong>{stats.categories}</strong>
             <span>Categories</span>
           </div>
         </div>

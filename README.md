@@ -1,153 +1,133 @@
-# BookSwap API
+# BookSwap — Full Stack Marketplace
 
-Flask backend for an online used book marketplace with:
-- SQLAlchemy relational models (`users`, `categories`, `books`, `orders`)
-- JWT authentication (register/login + protected write routes)
-- Role-based authorization (`buyer`, `seller`, `admin`)
-- Request validation via Marshmallow schemas
-- CRUD APIs testable from Postman
+Online used book marketplace with a **React frontend**, **Flask REST API**, and **SQL database** (SQLite by default, MySQL optional).
 
-## 1) Setup
+## Architecture
 
-1. Create virtual environment:
+```
+React (Vite)  →  /api proxy  →  Flask API  →  SQLAlchemy  →  SQLite / MySQL
+   :5173                           :5000
+```
+
+The frontend already calls the API via `frontend/src/api/client.js`. In development, Vite proxies `/api` to `http://127.0.0.1:5000`.
+
+## Quick start (Windows)
+
+1. **One-time setup** — double-click `setup.bat` or run:
    ```bash
    python -m venv venv
-   ```
-
-2. Activate virtual environment:
-   - Windows: `venv\Scripts\activate`
-   - macOS/Linux: `source venv/bin/activate`
-
-3. Install dependencies:
-   ```bash
+   venv\Scripts\activate
    pip install -r requirements.txt
-   ```
-
-4. Configure `.env`:
-   ```env
-   DATABASE_URL=sqlite:///app.db
-   JWT_SECRET_KEY=change-this-jwt-secret
-   ```
-
-5. Initialize Flask-Migrate (first time only):
-   ```bash
-   flask --app run.py db init
-   ```
-
-6. Create and apply migration:
-   ```bash
-   flask --app run.py db migrate -m "initial bookswap schema"
    flask --app run.py db upgrade
+   python seed.py
+   cd frontend && npm install
    ```
 
-7. Start server:
+2. **Start backend** — double-click `start-backend.bat` or:
    ```bash
+   venv\Scripts\activate
    python run.py
    ```
 
-Base URL:
-- `http://127.0.0.1:5000/api`
+3. **Start frontend** — double-click `start-frontend.bat` or:
+   ```bash
+   npm run dev
+   ```
 
-## 2) Role behavior
+4. Open **http://localhost:5173**
 
-- `admin`: manage users/categories and all books/orders
-- `seller`: create/update/delete own books
-- `buyer`: create/update/delete own orders
+Both servers must run at the same time for the app to work.
 
-## 3) API routes
+## Demo accounts (after seed)
 
-Public routes:
+| Role   | Email               | Password   |
+|--------|---------------------|------------|
+| Admin  | admin@bookswap.com  | admin123   |
+| Seller | seller@bookswap.com | seller123  |
+| Buyer  | buyer@bookswap.com  | buyer123   |
+
+## Environment variables
+
+Copy `.env.example` to `.env` in the project root:
+
+```env
+SECRET_KEY=change-this-secret-key
+JWT_SECRET_KEY=change-this-jwt-secret
+DATABASE_URL=sqlite:///instance/app.db
+```
+
+Optional frontend override (`frontend/.env`):
+
+```env
+VITE_API_URL=http://127.0.0.1:5000/api
+```
+
+## Database
+
+- **SQLite (default):** file at `instance/app.db` — no extra install
+- **MySQL (optional):** set in `.env`:
+  ```env
+  DATABASE_URL=mysql+pymysql://root:your_password@localhost:3306/bookswap
+  ```
+  Create the database first, then run:
+  ```bash
+  flask --app run.py db upgrade
+  python seed.py
+  ```
+
+### Tables
+
+| Table        | Purpose                          |
+|--------------|----------------------------------|
+| `users`      | Accounts (buyer, seller, admin)  |
+| `categories` | Book genres                      |
+| `books`      | Listings                         |
+| `orders`     | Purchases                        |
+
+## API base URL
+
+- Direct: `http://127.0.0.1:5000/api`
+- Via Vite proxy (dev): `http://localhost:5173/api`
+
+### Public routes
+
 - `GET /health`
 - `POST /auth/register`
 - `POST /auth/login`
-- `GET /users/<user_id>`
-- `GET /categories`
-- `GET /categories/<category_id>`
-- `GET /books`
-- `GET /books/<book_id>`
-- `GET /orders`
-- `GET /orders/<order_id>`
+- `GET /categories`, `GET /books`, `GET /orders`
+- `GET /users/<id>`, `GET /books/<id>`, etc.
 
-Protected routes (require `Authorization: Bearer <token>`):
-- `GET /users` (admin only)
-- `PUT /users/<user_id>` (self or admin)
-- `DELETE /users/<user_id>` (self or admin)
-- `POST /categories` (admin only)
-- `PUT /categories/<category_id>` (admin only)
-- `DELETE /categories/<category_id>` (admin only)
-- `POST /books` (seller/admin)
-- `PUT /books/<book_id>` (owner seller/admin)
-- `DELETE /books/<book_id>` (owner seller/admin)
-- `POST /orders` (buyer/admin)
-- `PUT /orders/<order_id>` (owner buyer/admin)
-- `DELETE /orders/<order_id>` (owner buyer/admin)
+### Protected routes (Bearer JWT)
 
-## 4) Postman quick test
+- Admin: users, categories CRUD
+- Seller: create/edit/delete own books
+- Buyer: create/edit/delete own orders
 
-1. Register seller user:
-```json
-{
-  "username": "seller01",
-  "email": "seller01@example.com",
-  "password": "StrongPass123",
-  "role": "seller"
-}
-```
+## Role behavior
 
-2. Login:
-```json
-{
-  "email": "seller01@example.com",
-  "password": "StrongPass123"
-}
-```
-Copy `access_token`.
+- **buyer:** browse, buy books, view orders
+- **seller:** list and manage books
+- **admin:** manage users, categories, and all data
 
-3. Set Postman header:
-- `Authorization: Bearer <access_token>`
-- `Content-Type: application/json`
+## Frontend pages connected to API
 
-4. Create category (admin token required):
-```json
-{
-  "name": "Fiction"
-}
-```
+| Page              | API used                                      |
+|-------------------|-----------------------------------------------|
+| Login / Register  | `/auth/login`, `/auth/register`               |
+| Books browse      | `/books`, `/categories`                       |
+| Book detail       | `/books/:id`, `/orders` (buy)                 |
+| Seller listings   | `/books` (filtered), CRUD                     |
+| Orders            | `/orders`, `/books`                           |
+| Admin dashboard   | `/users`, `/books`, `/orders`, `/categories` |
+| Admin categories  | categories CRUD                               |
+| Admin users       | `/users`                                      |
 
-5. Create book (seller token):
-```json
-{
-  "seller_id": 1,
-  "category_id": 1,
-  "title": "Clean Code",
-  "author": "Robert C. Martin",
-  "isbn": "9780132350884",
-  "price": 18.50,
-  "condition": "Good",
-  "description": "Second-hand copy in good condition",
-  "image_url": "https://example.com/book.jpg",
-  "status": "Available"
-}
-```
+## NPM scripts (root)
 
-6. Register/login buyer, then create order:
-```json
-{
-  "book_id": 1,
-  "buyer_id": 2,
-  "total_amount": 18.50,
-  "payment_status": "Paid"
-}
-```
-
-## 5) Switching to MySQL (optional)
-
-If you want MySQL instead of SQLite, change:
-```env
-DATABASE_URL=mysql+pymysql://root:your_password@localhost:3306/bookswap
-```
-Then run:
 ```bash
-flask --app run.py db migrate -m "mysql schema"
-flask --app run.py db upgrade
+npm run dev          # frontend only
+npm run dev:backend  # Flask API only
+npm run db:upgrade   # apply migrations
+npm run db:seed      # seed demo data
+npm run setup        # install + migrate + seed
 ```

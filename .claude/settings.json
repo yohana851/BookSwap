@@ -1,0 +1,16 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm run *)",
+      "Bash(grep -B1 -A15 \"AuthContext\\\\|AdminLogin\\\\.jsx$\\\\|pages.Login\\\\.jsx$\\\\|Register\\\\.jsx$\")",
+      "Bash(npm install *)",
+      "Bash(python -c ' *)",
+      "Bash(rm -f d:/BookSwap/frontend/screenshot_checkout.mjs)",
+      "Bash(npm uninstall *)",
+      "Bash(npx vite *)",
+      "Bash(npx eslint *)",
+      "Bash(rm -f d:/BookSwap/frontend/screenshot_soldout.mjs)",
+      "Bash(git add *)"
+    ]
+  }
+}

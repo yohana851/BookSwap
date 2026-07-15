@@ -1,0 +1,14 @@
+{
+  "name": "bookswap-root",
+  "private": true,
+  "scripts": {
+    "dev": "npm --prefix frontend run dev",
+    "dev:backend": "python run.py",
+    "db:upgrade": "flask --app run.py db upgrade",
+    "db:seed": "python seed.py",
+    "setup": "pip install -r requirements.txt && flask --app run.py db upgrade && python seed.py",
+    "build": "npm --prefix frontend run build",
+    "lint": "npm --prefix frontend run lint",
+    "preview": "npm --prefix frontend run preview"
+  }
+}

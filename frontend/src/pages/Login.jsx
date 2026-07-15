@@ -1,46 +1,28 @@
-import { useState } from 'react'
-import { Link, useNavigate, useParams } from 'react-router-dom'
+import { useEffect, useState } from 'react'
+import { Link, useNavigate } from 'react-router-dom'
+import PasswordInput from '../components/PasswordInput'
+import { homePathForRole } from '../components/ProtectedRoute'
 import { useAuth } from '../context/AuthContext'
 
-const roleConfig = {
-  user: {
-    title: 'User Sign In',
-    subtitle: 'Log in to browse and buy used books',
-    registerPath: '/register/user',
-    redirectPath: '/user',
-    expectedRoles: ['buyer', 'admin'],
-    wrongRoleMessage: 'This login is for users (buyers). Sellers should use seller sign in.',
-  },
-  seller: {
-    title: 'Seller Sign In',
-    subtitle: 'Log in to list and manage your books',
-    registerPath: '/register/seller',
-    redirectPath: '/sell',
-    expectedRoles: ['seller', 'admin'],
-    wrongRoleMessage: 'This login is for sellers. Users should use user sign in.',
-  },
-}
-
 export default function Login() {
-  const { role = 'user' } = useParams()
-  const config = roleConfig[role] || roleConfig.user
-  const { login, logout, loading } = useAuth()
+  const { login, loading, formResetKey } = useAuth()
   const navigate = useNavigate()
-  const [email, setEmail] = useState('')
+  const [identifier, setIdentifier] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
+
+  useEffect(() => {
+    setIdentifier('')
+    setPassword('')
+    setError('')
+  }, [formResetKey])
 
   const handleSubmit = async (e) => {
     e.preventDefault()
     setError('')
     try {
-      const user = await login(email, password)
-      if (!config.expectedRoles.includes(user.role)) {
-        logout()
-        setError(config.wrongRoleMessage)
-        return
-      }
-      navigate(config.redirectPath)
+      const user = await login(identifier, password)
+      navigate(homePathForRole(user.role))
     } catch (err) {
       setError(err.message)
     }
@@ -49,43 +31,31 @@ export default function Login() {
   return (
     <div className="page auth-page">
       <div className="auth-wrapper">
-        <div className="auth-role-tabs">
-          <Link
-            to="/login/user"
-            className={`auth-tab ${role === 'user' ? 'active' : ''}`}
-          >
-            User
-          </Link>
-          <Link
-            to="/login/seller"
-            className={`auth-tab ${role === 'seller' ? 'active' : ''}`}
-          >
-            Seller
-          </Link>
-        </div>
-
-        <form className="auth-card" onSubmit={handleSubmit}>
-          <h1>{config.title}</h1>
-          <p className="muted">{config.subtitle}</p>
+        <form key={formResetKey} className="auth-card" onSubmit={handleSubmit}>
+          <h1>Sign In</h1>
+          <p className="muted">Log in to your BookSwap account</p>
 
           {error && <p className="form-error">{error}</p>}
 
           <label>
-            Email
+            Username or Email
             <input
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              type="text"
+              name="identifier"
+              value={identifier}
+              onChange={(e) => setIdentifier(e.target.value)}
+              autoComplete="username"
               required
             />
           </label>
 
           <label>
             Password
-            <input
-              type="password"
+            <PasswordInput
+              name="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
+              autoComplete="current-password"
               required
             />
           </label>
@@ -95,7 +65,7 @@ export default function Login() {
           </button>
 
           <p className="auth-footer">
-            No account? <Link to={config.registerPath}>Create one</Link>
+            No account? <Link to="/register">Create one</Link>
           </p>
           <p className="auth-footer">
             <Link to="/">← Back to home</Link>
